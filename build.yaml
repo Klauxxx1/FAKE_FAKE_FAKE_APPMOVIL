@@ -1,0 +1,16 @@
+targets:
+  $default:
+    builders:
+      swagger_dart_code_generator:
+        options:
+          input_folder: "."
+          output_folder: "lib/api"
+          input_swagger_files_path: "swagger.yaml"
+          with_base_url: true
+          with_converter: true
+          use_required_attribute_for_headers: true
+          use_inheritance: true
+          build_only_models: false
+          separate_models: true
+          enums_case_sensitive: true
+          include_api_null_safe: true

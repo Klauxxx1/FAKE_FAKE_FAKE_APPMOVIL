@@ -21,6 +21,13 @@ class Usuario {
   }
 }
 
+// Asegúrate de que la clase Usuario tenga este método:
+extension UsuarioJson on Usuario {
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'nombre': nombre, 'correo': correo, 'rol': rol};
+  }
+}
+
 class Estudiante {
   final int id;
   final int usuarioId;
