@@ -1,13 +1,17 @@
+import 'package:aula_inteligente_si2/screen/asistencia/asistencia_screen.dart';
+import 'package:aula_inteligente_si2/screen/calificacion/calificacion_screen.dart';
+import 'package:aula_inteligente_si2/screen/home/home_screen.dart';
+import 'package:aula_inteligente_si2/screen/participacion/participacion_screen.dart';
+import 'package:aula_inteligente_si2/screen/perfil/perfil_screen.dart';
+import 'package:aula_inteligente_si2/screen/prediccion/prediccion_screen.dart';
+import 'package:aula_inteligente_si2/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'screen/auth/login_screen.dart';
-import 'screen/home/home_screen.dart';
-import 'screen/perfil/perfil_screen.dart';
-import 'screen/asistencia/asistencia_screen.dart';
-import 'screen/participacion/participacion_screen.dart';
-import 'screen/calificacion/calificacion_screen.dart';
-import 'screen/prediccion/prediccion_screen.dart';
-import 'services/auth_service.dart';
+import 'screen/auth/auth_provider.dart';
+import 'screen/calificacion/calificacion_provider.dart';
+// Otros imports...
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,31 +27,35 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Aula Inteligente',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: Colors.red,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.red,
-          primary: Colors.red,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => CalificacionProvider()),
+        // Otros providers...
+      ],
+      child: MaterialApp(
+        title: 'Aula Inteligente',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primarySwatch: Colors.red,
+          visualDensity: VisualDensity.adaptivePlatformDensity,
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+            elevation: 0,
+          ),
         ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.red,
-          foregroundColor: Colors.white,
-        ),
-        scaffoldBackgroundColor: Colors.grey[100],
+        home: const SplashScreen(),
+        routes: {
+          '/login': (context) => const LoginScreen(),
+          '/home': (context) => const HomeScreen(),
+          '/perfil': (context) => const PerfilScreen(),
+          '/asistencia': (context) => const AsistenciaScreen(),
+          '/participacion': (context) => const ParticipacionScreen(),
+          '/calificaciones': (context) => const CalificacionScreen(),
+          '/prediccion': (context) => const PrediccionScreen(),
+        },
       ),
-      home: const SplashScreen(),
-      routes: {
-        '/login': (context) => const LoginScreen(),
-        '/home': (context) => const HomeScreen(),
-        '/perfil': (context) => const PerfilScreen(),
-        '/asistencia': (context) => const AsistenciaScreen(),
-        //   '/participacion': (context) => const ParticipacionScreen(),
-        '/calificaciones': (context) => const CalificacionScreen(),
-        //   '/prediccion': (context) => const PrediccionScreen(),
-      },
     );
   }
 }
@@ -72,6 +80,7 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
+    await _authService.logout(); //klaus duda de esta linea de codigo xd
 
     bool isLoggedIn = await _authService.isLoggedIn();
 

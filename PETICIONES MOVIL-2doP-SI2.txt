@@ -1,0 +1,310 @@
+INICIO DE SESION:
+POST: https://prueba1dlv7.duckdns.org/api/token/
+BODY:
+{
+  "correo": "Fernando@gmail.com",
+  "password": "12345678"
+}
+------------------------------------------------------------------------------------
+DATOS COMO USUARIO:
+GET: https://prueba1dlv7.duckdns.org/api/usuarios/?page=6
+RESPUESTA:
+{
+   "id": 136,
+   "nombre": "Fernando Caba",
+   "correo": "Fernando@gmail.com",
+   "rol": "estudiante"
+},
+------------------------------------------------------------------------------------
+DATOS DEL ESTUDIANTE:
+GET: https://prueba1dlv7.duckdns.org/api/estudiantes/?page=6
+RESPUESTA:
+{
+   "id": 103,
+   "fecha_nacimiento": "2007-10-29",
+   "genero": "M",
+   "nombre_padre": "Bladimir Burgos",
+   "nombre_madre": "Ana Isabel",
+   "ci_tutor": "138333",
+   "direccion": "Av. Las Americas",
+   "telefono": "74023822",
+   "usuario": 136,
+     "curso": 38
+},
+------------------------------------------------------------------------------------
+PETICION PARA SABER ID DEL ESTUDIANTE
+GET: https://prueba1dlv7.duckdns.org:443/api/estudiante/por-usuario/?usuario_id=136
+RESPUESTA:
+{
+    "estudiante_id": 103
+}
+------------------------------------------------------------------------------------
+MATERIAS-PROFESOR-CURSO-NOTAS-RENDIMIENTO/PREDICCION-ASISTENCIAS-PARTICIPACION-DETALLE_DE_CALIFICACIONES
+GET: https://prueba1dlv7.duckdns.org/api/inscripciones-trimestrales-estudiante/?estudiante_id=103&gestion_academica_trimestral=2025-T1
+
+RESPUESTA:
+[
+    {
+        "nombre_materia": "Lengua y Literatura",
+        "nombre_profesor": "Megumy Herrera",
+        "nombre_curso": "5° - B",
+        "rendimiento_academico_real": 0.0,
+        "rendimiento_academico_estimado": 81.64,
+        "asistencias": [
+            {
+                "id": 1,
+                "fecha": "2025-02-01",
+                "tipo": "P",
+                "observaciones": "",
+                "inscripcion_trimestre": 901
+            },
+            {
+                "id": 2,
+                "fecha": "2025-02-08",
+                "tipo": "P",
+                "observaciones": "",
+                "inscripcion_trimestre": 901
+            },
+            {
+                "id": 3,
+                "fecha": "2025-02-15",
+                "tipo": "F",
+                "observaciones": "",
+                "inscripcion_trimestre": 901
+            }
+        ],
+        "participaciones": [
+            {
+                "id": 1,
+                "participo": true,
+                "fecha": "2025-02-08",
+                "inscripcion_trimestre": 901
+            }
+        ],
+        "evaluacion_legal": {
+            "id": 3,
+            "nota_saber_evaluacion_profesor": "88.50",
+            "nota_hacer_evaluacion_profesor": "91.00",
+            "nota_ser_evaluacion_profesor": "86.00",
+            "nota_decidir_evaluacion_profesor": "89.50",
+            "nota_evaluacion_profesor": "89.33",
+            "nota_ser_evaluacion_estudiante": "100.00",
+            "nota_decidir_evaluacion_estudiante": "100.00",
+            "nota_evaluacion_estudiante": "100.00",
+            "nota_evaluacion_legal": "90.40",
+            "inscripcion_trimestre": 901
+        }
+    },
+    {
+        "nombre_materia": "Matemática",
+        "nombre_profesor": "Luciano Hecheverria",
+        "nombre_curso": "5° - B",
+        "rendimiento_academico_real": 0.0,
+        "rendimiento_academico_estimado": 81.19,
+        "asistencias": [
+            {
+                "id": 4,
+                "fecha": "2025-02-01",
+                "tipo": "P",
+                "observaciones": "",
+                "inscripcion_trimestre": 902
+            },
+            {
+                "id": 5,
+                "fecha": "2025-02-08",
+                "tipo": "P",
+                "observaciones": "",
+                "inscripcion_trimestre": 902
+            },
+            {
+                "id": 6,
+                "fecha": "2025-02-15",
+                "tipo": "F",
+                "observaciones": "",
+                "inscripcion_trimestre": 902
+            },
+            {
+                "id": 43,
+                "fecha": "2025-06-03",
+                "tipo": "P",
+                "observaciones": "",
+                "inscripcion_trimestre": 902
+            },
+            {
+                "id": 49,
+                "fecha": "2025-06-04",
+                "tipo": "P",
+                "observaciones": "",
+                "inscripcion_trimestre": 902
+            }
+        ],
+        "participaciones": [
+            {
+                "id": 2,
+                "participo": true,
+                "fecha": "2025-02-15",
+                "inscripcion_trimestre": 902
+            },
+            {
+                "id": 31,
+                "participo": true,
+                "fecha": "2025-06-04",
+                "inscripcion_trimestre": 902
+            }
+        ],
+        "evaluacion_legal": {
+            "id": 4,
+            "nota_saber_evaluacion_profesor": "93.00",
+            "nota_hacer_evaluacion_profesor": "95.00",
+            "nota_ser_evaluacion_profesor": "90.00",
+            "nota_decidir_evaluacion_profesor": "92.50",
+            "nota_evaluacion_profesor": "84.05",
+            "nota_ser_evaluacion_estudiante": "100.00",
+            "nota_decidir_evaluacion_estudiante": "100.00",
+            "nota_evaluacion_estudiante": "100.00",
+            "nota_evaluacion_legal": "85.64",
+            "inscripcion_trimestre": 902
+        }
+    },
+    {
+        "nombre_materia": "Ciencias Naturales",
+        "nombre_profesor": "Lucia Torrez",
+        "nombre_curso": "5° - B",
+        "rendimiento_academico_real": 0.0,
+        "rendimiento_academico_estimado": 80.42,
+        "asistencias": [
+            {
+                "id": 7,
+                "fecha": "2025-02-02",
+                "tipo": "P",
+                "observaciones": "",
+                "inscripcion_trimestre": 903
+            },
+            {
+                "id": 8,
+                "fecha": "2025-02-09",
+                "tipo": "P",
+                "observaciones": "",
+                "inscripcion_trimestre": 903
+            },
+            {
+                "id": 9,
+                "fecha": "2025-02-16",
+                "tipo": "P",
+                "observaciones": "",
+                "inscripcion_trimestre": 903
+            }
+        ],
+        "participaciones": [
+            {
+                "id": 3,
+                "participo": true,
+                "fecha": "2025-02-09",
+                "inscripcion_trimestre": 903
+            }
+        ],
+        "evaluacion_legal": {
+            "id": 5,
+            "nota_saber_evaluacion_profesor": "85.00",
+            "nota_hacer_evaluacion_profesor": "87.00",
+            "nota_ser_evaluacion_profesor": "84.50",
+            "nota_decidir_evaluacion_profesor": "88.00",
+            "nota_evaluacion_profesor": "85.91",
+            "nota_ser_evaluacion_estudiante": "100.00",
+            "nota_decidir_evaluacion_estudiante": "100.00",
+            "nota_evaluacion_estudiante": "100.00",
+            "nota_evaluacion_legal": "87.32",
+            "inscripcion_trimestre": 903
+        }
+    },
+    {
+        "nombre_materia": "Ciencias Sociales",
+        "nombre_profesor": "Pablo Figueroa",
+        "nombre_curso": "5° - B",
+        "rendimiento_academico_real": 0.0,
+        "rendimiento_academico_estimado": 81.35,
+        "asistencias": [
+            {
+                "id": 10,
+                "fecha": "2025-02-02",
+                "tipo": "P",
+                "observaciones": "",
+                "inscripcion_trimestre": 904
+            },
+            {
+                "id": 11,
+                "fecha": "2025-02-09",
+                "tipo": "P",
+                "observaciones": "",
+                "inscripcion_trimestre": 904
+            },
+            {
+                "id": 12,
+                "fecha": "2025-02-16",
+                "tipo": "P",
+                "observaciones": "",
+                "inscripcion_trimestre": 904
+            }
+        ],
+        "participaciones": [],
+        "evaluacion_legal": {
+            "id": 6,
+            "nota_saber_evaluacion_profesor": "98.00",
+            "nota_hacer_evaluacion_profesor": "97.00",
+            "nota_ser_evaluacion_profesor": "96.50",
+            "nota_decidir_evaluacion_profesor": "99.00",
+            "nota_evaluacion_profesor": "97.58",
+            "nota_ser_evaluacion_estudiante": "100.00",
+            "nota_decidir_evaluacion_estudiante": "100.00",
+            "nota_evaluacion_estudiante": "100.00",
+            "nota_evaluacion_legal": "97.82",
+            "inscripcion_trimestre": 904
+        }
+    },
+    {
+        "nombre_materia": "Educación Física",
+        "nombre_profesor": "Edwin Ledesma",
+        "nombre_curso": "5° - B",
+        "rendimiento_academico_real": 0.0,
+        "rendimiento_academico_estimado": 81.58,
+        "asistencias": [
+            {
+                "id": 13,
+                "fecha": "2025-02-03",
+                "tipo": "P",
+                "observaciones": "",
+                "inscripcion_trimestre": 905
+            },
+            {
+                "id": 14,
+                "fecha": "2025-02-10",
+                "tipo": "F",
+                "observaciones": "",
+                "inscripcion_trimestre": 905
+            },
+            {
+                "id": 15,
+                "fecha": "2025-02-17",
+                "tipo": "P",
+                "observaciones": "",
+                "inscripcion_trimestre": 905
+            }
+        ],
+        "participaciones": [],
+        "evaluacion_legal": {
+            "id": 7,
+            "nota_saber_evaluacion_profesor": "82.00",
+            "nota_hacer_evaluacion_profesor": "85.00",
+            "nota_ser_evaluacion_profesor": "80.50",
+            "nota_decidir_evaluacion_profesor": "84.00",
+            "nota_evaluacion_profesor": "82.68",
+            "nota_ser_evaluacion_estudiante": "100.00",
+            "nota_decidir_evaluacion_estudiante": "100.00",
+            "nota_evaluacion_estudiante": "100.00",
+            "nota_evaluacion_legal": "84.41",
+            "inscripcion_trimestre": 905
+        }
+    }
+]
+
+

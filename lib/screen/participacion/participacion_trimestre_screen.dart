@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../services/inscripcion_trimestral_service.dart';
 
-class AsistenciaTrimestreScreen extends StatefulWidget {
+class ParticipacionTrimestreScreen extends StatefulWidget {
   final String titulo;
   final int trimestreId;
   final String gestionTrimestral;
 
-  const AsistenciaTrimestreScreen({
+  const ParticipacionTrimestreScreen({
     Key? key,
     required this.titulo,
     required this.trimestreId,
@@ -15,14 +14,15 @@ class AsistenciaTrimestreScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<AsistenciaTrimestreScreen> createState() =>
-      _AsistenciaTrimestreScreenState();
+  State<ParticipacionTrimestreScreen> createState() =>
+      _ParticipacionTrimestreScreenState();
 }
 
-class _AsistenciaTrimestreScreenState extends State<AsistenciaTrimestreScreen> {
+class _ParticipacionTrimestreScreenState
+    extends State<ParticipacionTrimestreScreen> {
   bool _isLoading = true;
   String _error = '';
-  List<MateriaAsistencia> _materias = [];
+  List<MateriaParticipacion> _materias = [];
 
   // ID del estudiante - en una app real se obtendría del servicio de autenticación
   final int _estudianteId = 103;
@@ -30,10 +30,10 @@ class _AsistenciaTrimestreScreenState extends State<AsistenciaTrimestreScreen> {
   @override
   void initState() {
     super.initState();
-    _cargarAsistencias();
+    _cargarParticipaciones();
   }
 
-  Future<void> _cargarAsistencias() async {
+  Future<void> _cargarParticipaciones() async {
     setState(() {
       _isLoading = true;
       _error = '';
@@ -48,38 +48,35 @@ class _AsistenciaTrimestreScreenState extends State<AsistenciaTrimestreScreen> {
       );
 
       // Procesar datos para mostrar en la UI
-      final List<MateriaAsistencia> materias = [];
+      final List<MateriaParticipacion> materias = [];
 
       for (var inscripcion in inscripciones) {
-        final asistencias = List<Map<String, dynamic>>.from(
-          inscripcion['asistencias'],
+        final participaciones = List<Map<String, dynamic>>.from(
+          inscripcion['participaciones'],
         );
 
-        int presentes = 0;
-        int faltas = 0;
-        List<AsistenciaData> asistenciasData = [];
+        int totalParticipaciones = participaciones.length;
+        int participacionesActivas =
+            participaciones.where((p) => p['participo'] == true).length;
+        List<ParticipacionData> participacionesData = [];
 
-        for (var asistencia in asistencias) {
-          final bool esPresente = asistencia['tipo'] == 'P';
-          if (esPresente) {
-            presentes++;
-          } else {
-            faltas++;
-          }
-
-          asistenciasData.add(
-            AsistenciaData(fecha: asistencia['fecha'], asistio: esPresente),
+        for (var participacion in participaciones) {
+          participacionesData.add(
+            ParticipacionData(
+              fecha: participacion['fecha'],
+              participo: participacion['participo'] == true,
+            ),
           );
         }
 
         materias.add(
-          MateriaAsistencia(
+          MateriaParticipacion(
             nombreMateria: inscripcion['nombre_materia'],
             nombreProfesor: inscripcion['nombre_profesor'],
             curso: inscripcion['nombre_curso'],
-            asistencias: asistenciasData,
-            presentes: presentes,
-            faltas: faltas,
+            participaciones: participacionesData,
+            totalParticipaciones: totalParticipaciones,
+            participacionesActivas: participacionesActivas,
           ),
         );
       }
@@ -136,7 +133,7 @@ class _AsistenciaTrimestreScreenState extends State<AsistenciaTrimestreScreen> {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: _cargarAsistencias,
+                        onPressed: _cargarParticipaciones,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                         ),
@@ -147,10 +144,10 @@ class _AsistenciaTrimestreScreenState extends State<AsistenciaTrimestreScreen> {
                 )
                 : _materias.isEmpty
                 ? const Center(
-                  child: Text('No hay datos de asistencia disponibles'),
+                  child: Text('No hay datos de participación disponibles'),
                 )
                 : RefreshIndicator(
-                  onRefresh: _cargarAsistencias,
+                  onRefresh: _cargarParticipaciones,
                   color: Colors.red,
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -166,7 +163,7 @@ class _AsistenciaTrimestreScreenState extends State<AsistenciaTrimestreScreen> {
     );
   }
 
-  Widget _buildMateriaTarjeta(MateriaAsistencia materia) {
+  Widget _buildMateriaTarjeta(MateriaParticipacion materia) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 5,
@@ -218,9 +215,9 @@ class _AsistenciaTrimestreScreenState extends State<AsistenciaTrimestreScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Lista de asistencias
+            // Lista de participaciones
             const Text(
-              'Asistencias:',
+              'Participaciones:',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -228,60 +225,76 @@ class _AsistenciaTrimestreScreenState extends State<AsistenciaTrimestreScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            ...materia.asistencias.map((asistencia) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    Text(
-                      '- ${_formatDate(asistencia.fecha)}: ',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
-                    if (asistencia.asistio)
-                      Row(
-                        children: [
-                          const Text(
-                            'P',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
+            materia.participaciones.isEmpty
+                ? Text(
+                  'No hay participaciones registradas',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                    fontStyle: FontStyle.italic,
+                  ),
+                )
+                : Column(
+                  children:
+                      materia.participaciones.map((participacion) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            children: [
+                              Text(
+                                '- ${_formatDate(participacion.fecha)}: ',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                              if (participacion.participo)
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Participó',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue.shade700,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.thumb_up,
+                                      color: Colors.blue.shade700,
+                                      size: 16,
+                                    ),
+                                  ],
+                                )
+                              else
+                                Row(
+                                  children: [
+                                    const Text(
+                                      'No participó',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(
+                                      Icons.thumb_down,
+                                      color: Colors.grey,
+                                      size: 16,
+                                    ),
+                                  ],
+                                ),
+                            ],
                           ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                            size: 16,
-                          ),
-                        ],
-                      )
-                    else
-                      Row(
-                        children: [
-                          const Text(
-                            'F',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.cancel, color: Colors.red, size: 16),
-                        ],
-                      ),
-                  ],
+                        );
+                      }).toList(),
                 ),
-              );
-            }).toList(),
 
             const SizedBox(height: 16),
 
-            // Resumen de asistencias
+            // Resumen de participaciones
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -301,49 +314,51 @@ class _AsistenciaTrimestreScreenState extends State<AsistenciaTrimestreScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.check_circle,
-                        color: Colors.green,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Presentes: ${materia.presentes}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.green,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      const Icon(Icons.cancel, color: Colors.red, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Faltas: ${materia.faltas}',
-                        style: const TextStyle(fontSize: 14, color: Colors.red),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  LinearProgressIndicator(
-                    value:
-                        materia.presentes /
-                        (materia.presentes + materia.faltas),
-                    backgroundColor: Colors.red.shade100,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
-                    minHeight: 8,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  const SizedBox(height: 8),
                   Text(
-                    'Porcentaje de asistencia: ${_calcularPorcentajeAsistencia(materia.presentes, materia.faltas)}%',
+                    'Total de participaciones: ${materia.totalParticipaciones}',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.grey.shade800,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  materia.totalParticipaciones > 0
+                      ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          LinearProgressIndicator(
+                            value:
+                                materia.totalParticipaciones > 0
+                                    ? materia.participacionesActivas /
+                                        materia.totalParticipaciones
+                                    : 0,
+                            backgroundColor: Colors.red.shade100,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.blue,
+                            ),
+                            minHeight: 8,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Participaciones efectivas: ${_calcularPorcentajeParticipacion(materia.participacionesActivas, materia.totalParticipaciones)}%',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade700,
+                            ),
+                          ),
+                        ],
+                      )
+                      : const Text(
+                        'Sin registros de participación',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontStyle: FontStyle.italic,
+                          color: Colors.grey,
+                        ),
+                      ),
                 ],
               ),
             ),
@@ -357,34 +372,34 @@ class _AsistenciaTrimestreScreenState extends State<AsistenciaTrimestreScreen> {
     return fecha; // Puedes implementar un formateador de fecha más sofisticado
   }
 
-  String _calcularPorcentajeAsistencia(int presentes, int faltas) {
-    if (presentes + faltas == 0) return '0.0';
-    return ((presentes * 100) / (presentes + faltas)).toStringAsFixed(1);
+  String _calcularPorcentajeParticipacion(int activas, int total) {
+    if (total == 0) return '0.0';
+    return ((activas * 100) / total).toStringAsFixed(1);
   }
 }
 
 // Clases auxiliares para manejar los datos
-class MateriaAsistencia {
+class MateriaParticipacion {
   final String nombreMateria;
   final String nombreProfesor;
   final String curso;
-  final List<AsistenciaData> asistencias;
-  final int presentes;
-  final int faltas;
+  final List<ParticipacionData> participaciones;
+  final int totalParticipaciones;
+  final int participacionesActivas;
 
-  MateriaAsistencia({
+  MateriaParticipacion({
     required this.nombreMateria,
     required this.nombreProfesor,
     required this.curso,
-    required this.asistencias,
-    required this.presentes,
-    required this.faltas,
+    required this.participaciones,
+    required this.totalParticipaciones,
+    required this.participacionesActivas,
   });
 }
 
-class AsistenciaData {
+class ParticipacionData {
   final String fecha;
-  final bool asistio;
+  final bool participo;
 
-  AsistenciaData({required this.fecha, required this.asistio});
+  ParticipacionData({required this.fecha, required this.participo});
 }

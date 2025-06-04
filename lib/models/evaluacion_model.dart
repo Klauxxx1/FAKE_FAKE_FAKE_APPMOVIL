@@ -1,4 +1,4 @@
-class EvaluacionLegal {
+/*class EvaluacionLegal {
   final int id;
   final int inscripcionTrimestreId;
   final double notaSaberEvaluacionProfesor;
@@ -64,4 +64,4 @@ class EvaluacionLegal {
       'nota_evaluacion_legal': notaEvaluacionLegal,
     };
   }
-}
+}*/

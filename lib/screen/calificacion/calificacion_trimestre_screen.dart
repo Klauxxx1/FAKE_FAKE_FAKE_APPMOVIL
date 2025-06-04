@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../screen/calificacion/calificacion_provider.dart';
+import 'package:intl/intl.dart';
+import '../../models/calificacion_model.dart';
+import 'calificacion_provider.dart';
 
 class CalificacionTrimestreScreen extends StatefulWidget {
   final String titulo;
-  final int trimestreId;
+  final String trimestre;
 
   const CalificacionTrimestreScreen({
     Key? key,
     required this.titulo,
-    required this.trimestreId,
+    required this.trimestre,
   }) : super(key: key);
 
   @override
@@ -19,19 +21,56 @@ class CalificacionTrimestreScreen extends StatefulWidget {
 
 class _CalificacionTrimestreScreenState
     extends State<CalificacionTrimestreScreen> {
-  bool _isLoading = true;
   List<MateriaCalificacion> _materias = [];
+  bool _isLoading = true;
+  String _error = '';
 
   @override
   void initState() {
     super.initState();
-    // Simular carga de datos
-    Future.delayed(const Duration(seconds: 1), () {
-      setState(() {
-        _materias = _getMockCalificaciones();
-        _isLoading = false;
-      });
+    _cargarCalificaciones();
+  }
+
+  Future<void> _cargarCalificaciones() async {
+    setState(() {
+      _isLoading = true;
+      _error = '';
     });
+
+    try {
+      final provider = Provider.of<CalificacionProvider>(
+        context,
+        listen: false,
+      );
+
+      // Primero verifica si ya hay datos en caché
+      if (provider.tieneDatosTrimestre(widget.trimestre)) {
+        setState(() {
+          _materias = provider.getDatosTrimestre(widget.trimestre);
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Si no hay datos, inicia la carga pero no esperes aquí
+      await provider.cargarCalificacionesTrimestre(widget.trimestre);
+
+      // Después de la carga, obtén los datos y actualiza el estado
+      if (mounted) {
+        setState(() {
+          _materias = provider.getDatosTrimestre(widget.trimestre);
+          _error = provider.error;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -42,7 +81,13 @@ class _CalificacionTrimestreScreenState
         backgroundColor: Colors.red,
         elevation: 0,
       ),
-      body: Container(
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -51,195 +96,183 @@ class _CalificacionTrimestreScreenState
             stops: [0.0, 0.3],
           ),
         ),
-        child:
-            _isLoading
-                ? const Center(
-                  child: CircularProgressIndicator(color: Colors.red),
-                )
-                : Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: ListView.builder(
-                    itemCount: _materias.length,
-                    itemBuilder: (context, index) {
-                      return _buildMateriaCalificacionCard(_materias[index]);
-                    },
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
+      );
+    }
+
+    if (_error.isNotEmpty) {
+      return Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.red, Colors.white],
+            stops: [0.0, 0.3],
+          ),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 80,
+                  color: Colors.white.withOpacity(0.8),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Error al cargar calificaciones',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
+                const SizedBox(height: 8),
+                Text(
+                  _error,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 16,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _cargarCalificaciones,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.red,
+                  ),
+                  child: const Text('Reintentar'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_materias.isEmpty) {
+      return Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.red, Colors.white],
+            stops: [0.0, 0.3],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.school,
+                size: 80,
+                color: Colors.white.withOpacity(0.8),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'No hay calificaciones disponibles',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'No se encontraron calificaciones para este trimestre',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 16,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.red,
+                ),
+                child: const Text('Volver'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.red, Colors.white],
+          stops: [0.0, 0.3],
+        ),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildPromedioGeneralCard(_materias),
+          const SizedBox(height: 16),
+          ..._materias.map((materia) => _buildMateriaCard(materia)).toList(),
+        ],
       ),
     );
   }
 
-  Widget _buildMateriaCalificacionCard(MateriaCalificacion materia) {
-    Color notaColor;
-    if (materia.notaFinal >= 80) {
-      notaColor = Colors.green;
-    } else if (materia.notaFinal >= 70) {
-      notaColor = Colors.blue;
-    } else if (materia.notaFinal >= 51) {
-      notaColor = Colors.orange;
-    } else {
-      notaColor = Colors.red;
+  Widget _buildPromedioGeneralCard(List<MateriaCalificacion> materias) {
+    // Calcular el promedio general del trimestre
+    double sumaNotas = 0;
+    for (var materia in materias) {
+      sumaNotas += double.parse(materia.evaluacionLegal.notaEvaluacionLegal);
     }
+    double promedioGeneral =
+        materias.isNotEmpty ? sumaNotas / materias.length : 0;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.white, Colors.red.shade50],
-          ),
-        ),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Encabezado de la tarjeta
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.red.shade200, width: 1),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Materia: ${materia.nombreMateria}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Profesor: ${materia.nombreProfesor}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Curso: ${materia.curso}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: notaColor,
-                    ),
-                    child: Center(
-                      child: Text(
-                        materia.notaFinal.toStringAsFixed(1),
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Notas por dimensión
-            const Text(
-              'Detalles de la calificación:',
-              style: TextStyle(
-                fontSize: 16,
+            Text(
+              'Promedio ${widget.titulo}',
+              style: const TextStyle(
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.red,
               ),
             ),
-            const SizedBox(height: 12),
-
-            _buildNotaItem('Saber', materia.notaSaber),
-            _buildNotaItem('Hacer', materia.notaHacer),
-            _buildNotaItem('Ser', materia.notaSer),
-            _buildNotaItem('Decidir', materia.notaDecidir),
-
             const SizedBox(height: 16),
-
-            // Resumen y nota final
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.shade200),
+                color: _getColorForNota(promedioGeneral),
+                shape: BoxShape.circle,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Evaluación Final:',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Text(
-                        'Nota final:',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        materia.notaFinal.toStringAsFixed(1),
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: notaColor,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        _getCalificacionTexto(materia.notaFinal),
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: notaColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  LinearProgressIndicator(
-                    value: materia.notaFinal / 100,
-                    backgroundColor: Colors.red.shade100,
-                    valueColor: AlwaysStoppedAnimation<Color>(notaColor),
-                    minHeight: 8,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ],
+              child: Text(
+                promedioGeneral.toStringAsFixed(2),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _getCalificacionTexto(promedioGeneral),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -247,186 +280,174 @@ class _CalificacionTrimestreScreenState
     );
   }
 
-  Widget _buildNotaItem(String dimension, double nota) {
+  Widget _buildMateriaCard(MateriaCalificacion materia) {
+    final nota = double.parse(materia.evaluacionLegal.notaEvaluacionLegal);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Título de la materia
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _getColorForNota(nota).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.book, color: _getColorForNota(nota)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Materia: ${materia.nombreMateria}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Profesor: ${materia.nombreProfesor}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      Text(
+                        'Curso: ${materia.nombreCurso}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const Divider(height: 24),
+
+            // Evaluación Legal
+            const Text(
+              'Evaluación Legal:',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+
+            // Evaluación del profesor
+            const Text(
+              '- Evaluación profesor:',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 4),
+            _buildDimensionRow(
+              'Saber:',
+              materia.evaluacionLegal.notaSaberEvaluacionProfesor,
+            ),
+            _buildDimensionRow(
+              'Hacer:',
+              materia.evaluacionLegal.notaHacerEvaluacionProfesor,
+            ),
+            _buildDimensionRow(
+              'Ser:',
+              materia.evaluacionLegal.notaSerEvaluacionProfesor,
+            ),
+            _buildDimensionRow(
+              'Decidir:',
+              materia.evaluacionLegal.notaDecidirEvaluacionProfesor,
+            ),
+            _buildDimensionRow(
+              'Promedio profesor:',
+              materia.evaluacionLegal.notaEvaluacionProfesor,
+            ),
+
+            const SizedBox(height: 8),
+
+            // Evaluación del estudiante
+            const Text(
+              '- Evaluación estudiante:',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 4),
+            _buildDimensionRow(
+              'Ser:',
+              materia.evaluacionLegal.notaSerEvaluacionEstudiante,
+            ),
+            _buildDimensionRow(
+              'Decidir:',
+              materia.evaluacionLegal.notaDecidirEvaluacionEstudiante,
+            ),
+            _buildDimensionRow(
+              'Promedio estudiante:',
+              materia.evaluacionLegal.notaEvaluacionEstudiante,
+            ),
+
+            const Divider(height: 24),
+
+            // Nota final
+            Row(
+              children: [
+                const Icon(Icons.diamond, color: Colors.blue),
+                const SizedBox(width: 8),
+                Text(
+                  'Nota Legal Final: ${materia.evaluacionLegal.notaEvaluacionLegal}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: _getColorForNota(nota),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDimensionRow(String label, String valor) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(left: 8.0, bottom: 4.0),
       child: Row(
         children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$dimension:',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(
-            child: LinearProgressIndicator(
-              value: nota / 100,
-              backgroundColor: Colors.grey.shade200,
-              valueColor: AlwaysStoppedAnimation<Color>(_getNotaColor(nota)),
-              minHeight: 12,
-              borderRadius: BorderRadius.circular(6),
-            ),
-          ),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 40,
-            child: Text(
-              nota.toStringAsFixed(1),
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: _getNotaColor(nota),
-              ),
-              textAlign: TextAlign.end,
-            ),
-          ),
+          SizedBox(width: 100, child: Text(label)),
+          Text(valor, style: const TextStyle(fontWeight: FontWeight.w500)),
         ],
       ),
     );
   }
 
-  Color _getNotaColor(double nota) {
+  Color _getColorForNota(double nota) {
     if (nota >= 80) return Colors.green;
-    if (nota >= 70) return Colors.blue;
-    if (nota >= 51) return Colors.orange;
+    if (nota >= 60) return Colors.amber;
     return Colors.red;
   }
 
   String _getCalificacionTexto(double nota) {
-    if (nota >= 90) return 'Excelente';
-    if (nota >= 80) return 'Muy Bueno';
-    if (nota >= 70) return 'Bueno';
-    if (nota >= 51) return 'Regular';
-    return 'Insuficiente';
+    if (nota >= 90) return '¡Excelente desempeño!';
+    if (nota >= 80) return '¡Muy buen trabajo!';
+    if (nota >= 70) return 'Buen desempeño';
+    if (nota >= 60) return 'Desempeño aceptable';
+    if (nota >= 50) return 'Necesita mejorar';
+    return 'Desempeño insuficiente';
   }
 
-  List<MateriaCalificacion> _getMockCalificaciones() {
-    // Datos de ejemplo para mostrar en las tarjetas
-    return [
-      MateriaCalificacion(
-        nombreMateria: 'Matemáticas',
-        nombreProfesor: 'Profesor Álvarez',
-        curso: '2° - A',
-        notaSaber: 85.0,
-        notaHacer: 90.0,
-        notaSer: 75.0,
-        notaDecidir: 82.0,
-        notaFinal: 83.0,
-      ),
-      MateriaCalificacion(
-        nombreMateria: 'Lenguaje',
-        nombreProfesor: 'Profesora Gutiérrez',
-        curso: '2° - A',
-        notaSaber: 92.0,
-        notaHacer: 88.0,
-        notaSer: 95.0,
-        notaDecidir: 90.0,
-        notaFinal: 91.0,
-      ),
-      MateriaCalificacion(
-        nombreMateria: 'Historia',
-        nombreProfesor: 'Profesor Rodríguez',
-        curso: '2° - A',
-        notaSaber: 78.0,
-        notaHacer: 75.0,
-        notaSer: 90.0,
-        notaDecidir: 82.0,
-        notaFinal: 81.0,
-      ),
-      MateriaCalificacion(
-        nombreMateria: 'Ciencias Naturales',
-        nombreProfesor: 'Profesor Ramírez',
-        curso: '2° - A',
-        notaSaber: 75.0,
-        notaHacer: 72.0,
-        notaSer: 85.0,
-        notaDecidir: 78.0,
-        notaFinal: 77.0,
-      ),
-      MateriaCalificacion(
-        nombreMateria: 'Educación Física',
-        nombreProfesor: 'Profesor López',
-        curso: '2° - A',
-        notaSaber: 65.0,
-        notaHacer: 95.0,
-        notaSer: 90.0,
-        notaDecidir: 80.0,
-        notaFinal: 82.0,
-      ),
-      MateriaCalificacion(
-        nombreMateria: 'Arte',
-        nombreProfesor: 'Profesora Sánchez',
-        curso: '2° - A',
-        notaSaber: 90.0,
-        notaHacer: 95.0,
-        notaSer: 100.0,
-        notaDecidir: 90.0,
-        notaFinal: 94.0,
-      ),
-      MateriaCalificacion(
-        nombreMateria: 'Música',
-        nombreProfesor: 'Profesor García',
-        curso: '2° - A',
-        notaSaber: 85.0,
-        notaHacer: 92.0,
-        notaSer: 90.0,
-        notaDecidir: 85.0,
-        notaFinal: 88.0,
-      ),
-      MateriaCalificacion(
-        nombreMateria: 'Inglés',
-        nombreProfesor: 'Profesora Wilson',
-        curso: '2° - A',
-        notaSaber: 75.0,
-        notaHacer: 68.0,
-        notaSer: 85.0,
-        notaDecidir: 72.0,
-        notaFinal: 75.0,
-      ),
-      MateriaCalificacion(
-        nombreMateria: 'Computación',
-        nombreProfesor: 'Profesor Torres',
-        curso: '2° - A',
-        notaSaber: 95.0,
-        notaHacer: 98.0,
-        notaSer: 90.0,
-        notaDecidir: 92.0,
-        notaFinal: 94.0,
-      ),
-      MateriaCalificacion(
-        nombreMateria: 'Religión',
-        nombreProfesor: 'Profesor Huerta',
-        curso: '2° - A',
-        notaSaber: 80.0,
-        notaHacer: 85.0,
-        notaSer: 95.0,
-        notaDecidir: 85.0,
-        notaFinal: 86.0,
-      ),
-    ];
+  String _formatDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      return DateFormat('dd/MM/yyyy').format(date);
+    } catch (e) {
+      return dateString;
+    }
   }
-}
-
-// Clase auxiliar para manejar los datos de ejemplo
-class MateriaCalificacion {
-  final String nombreMateria;
-  final String nombreProfesor;
-  final String curso;
-  final double notaSaber;
-  final double notaHacer;
-  final double notaSer;
-  final double notaDecidir;
-  final double notaFinal;
-
-  MateriaCalificacion({
-    required this.nombreMateria,
-    required this.nombreProfesor,
-    required this.curso,
-    required this.notaSaber,
-    required this.notaHacer,
-    required this.notaSer,
-    required this.notaDecidir,
-    required this.notaFinal,
-  });
 }

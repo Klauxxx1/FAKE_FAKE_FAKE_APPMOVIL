@@ -1,6 +1,6 @@
+import 'package:aula_inteligente_si2/models/usuario_model.dart';
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
-import '../../models/usuario_model.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -20,7 +20,7 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final result = await _authService.login(correo, contrasena);
-      _usuario = result;
+      _usuario = result as Usuario?;
       _isLoading = false;
       notifyListeners();
       return true;

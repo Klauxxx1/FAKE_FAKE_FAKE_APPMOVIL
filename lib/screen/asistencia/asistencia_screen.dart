@@ -1,8 +1,5 @@
-import 'package:aula_inteligente_si2/screen/asistencia/asistencia_trimestre_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../screen/asistencia/asistencia_provider.dart';
-import '../../models/asistencia_model.dart';
+import 'asistencia_trimestre_screen.dart';
 
 class AsistenciaScreen extends StatefulWidget {
   const AsistenciaScreen({Key? key}) : super(key: key);
@@ -43,61 +40,64 @@ class _AsistenciaScreenState extends State<AsistenciaScreen> {
                   children: [
                     _buildNavigationCard(
                       context,
-                      'Trimestre 1-2026',
+                      'Trimestre 1-2025',
                       Icons.calendar_today,
                       () => Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder:
                               (context) => const AsistenciaTrimestreScreen(
-                                titulo: 'Asistencia 1-2026',
+                                titulo: 'Asistencia 1-2025',
                                 trimestreId: 1,
+                                gestionTrimestral: '2025-T1',
                               ),
                         ),
                       ),
                     ),
                     _buildNavigationCard(
                       context,
-                      'Trimestre 2-2026',
+                      'Trimestre 2-2025',
                       Icons.calendar_month,
                       () => Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder:
                               (context) => const AsistenciaTrimestreScreen(
-                                titulo: 'Asistencia 2-2026',
+                                titulo: 'Asistencia 2-2025',
                                 trimestreId: 2,
+                                gestionTrimestral: '2025-T2',
                               ),
                         ),
                       ),
                     ),
                     _buildNavigationCard(
                       context,
-                      'Trimestre 3-2026',
+                      'Trimestre 3-2025',
                       Icons.calendar_view_month,
                       () => Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder:
                               (context) => const AsistenciaTrimestreScreen(
-                                titulo: 'Asistencia 3-2026',
+                                titulo: 'Asistencia 3-2025',
                                 trimestreId: 3,
+                                gestionTrimestral: '2025-T3',
                               ),
                         ),
                       ),
                     ),
                     _buildNavigationCard(
                       context,
-                      'Gestión 2026',
+                      'Gestión 2025',
                       Icons.school,
                       () => Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder:
                               (context) => const AsistenciaTrimestreScreen(
-                                titulo: 'Asistencia Gestión 2026',
-                                trimestreId:
-                                    0, // ID especial para la gestión completa
+                                titulo: 'Asistencia Gestión 2025',
+                                trimestreId: 0,
+                                gestionTrimestral: '2025',
                               ),
                         ),
                       ),

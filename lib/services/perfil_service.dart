@@ -1,4 +1,5 @@
 import 'dart:convert';
+//import 'package:aula_inteligente_si2/models/estudiante_model.dart';
 import 'package:http/http.dart' as http;
 import '../models/usuario_model.dart';
 
@@ -67,7 +68,7 @@ class PerfilService {
         'nombre_madre': estudiante.nombreMadre,
         'ci_tutor': estudiante.ciTutor,
         'direccion': estudiante.direccion,
-        'telefono': estudiante.telefono,
+        //'telefono': estudiante.telefono,
       }),
     );
 

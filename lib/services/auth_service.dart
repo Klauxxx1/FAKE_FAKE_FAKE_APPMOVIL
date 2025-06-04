@@ -301,9 +301,6 @@ class AuthService {
       return null;
     }
 
-    // Aquí podrías implementar lógica para verificar si el token está expirado
-    // y refrescarlo usando el refresh_token si es necesario
-
     return accessToken;
   }
 
