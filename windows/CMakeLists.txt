@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.14)
 project(aula_inteligente_si2 LANGUAGES CXX)
 
-# The name of the executable created for the application. Change this to change
+# The name of the executable created for the application. Change this to change.
 # the on-disk name of your application.
 set(BINARY_NAME "aula_inteligente_si2")
 

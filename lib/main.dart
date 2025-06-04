@@ -45,7 +45,7 @@ class MyApp extends StatelessWidget {
         '/perfil': (context) => const PerfilScreen(),
         '/asistencia': (context) => const AsistenciaScreen(),
         //   '/participacion': (context) => const ParticipacionScreen(),
-        //  '/calificaciones': (context) => const CalificacionScreen(),
+        '/calificaciones': (context) => const CalificacionScreen(),
         //   '/prediccion': (context) => const PrediccionScreen(),
       },
     );
