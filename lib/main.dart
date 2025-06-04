@@ -43,10 +43,10 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const HomeScreen(),
         '/perfil': (context) => const PerfilScreen(),
-        //        '/asistencia': (context) => const AsistenciaScreen(),
-        //        '/participacion': (context) => const ParticipacionScreen(),
-        //        '/calificaciones': (context) => const CalificacionScreen(),
-        //        '/prediccion': (context) => const PrediccionScreen(),
+        '/asistencia': (context) => const AsistenciaScreen(),
+        //   '/participacion': (context) => const ParticipacionScreen(),
+        //  '/calificaciones': (context) => const CalificacionScreen(),
+        //   '/prediccion': (context) => const PrediccionScreen(),
       },
     );
   }
