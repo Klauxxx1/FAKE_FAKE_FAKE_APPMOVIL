@@ -71,14 +71,7 @@ class AppDrawer extends StatelessWidget {
               Navigator.pushNamed(context, '/prediccion');
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.history),
-            title: const Text('Datos Históricos'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/Datos Históricos');
-            },
-          ),
+
           const Divider(),
           ListTile(
             leading: const Icon(Icons.person),
