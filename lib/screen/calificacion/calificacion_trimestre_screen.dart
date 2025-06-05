@@ -24,14 +24,20 @@ class _CalificacionTrimestreScreenState
   List<MateriaCalificacion> _materias = [];
   bool _isLoading = true;
   String _error = '';
+  bool _datosConsultados = false; // Nuevo flag para rastrear si ya consultamos
 
   @override
   void initState() {
     super.initState();
-    _cargarCalificaciones();
+    // Usamos addPostFrameCallback para evitar el error de setState durante build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _cargarCalificaciones();
+    });
   }
 
   Future<void> _cargarCalificaciones() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
       _error = '';
@@ -45,29 +51,41 @@ class _CalificacionTrimestreScreenState
 
       // Primero verifica si ya hay datos en caché
       if (provider.tieneDatosTrimestre(widget.trimestre)) {
-        setState(() {
-          _materias = provider.getDatosTrimestre(widget.trimestre);
-          _isLoading = false;
-        });
+        final datos = provider.getDatosTrimestre(widget.trimestre);
+        if (mounted) {
+          setState(() {
+            _materias = datos;
+            _isLoading = false;
+            _datosConsultados = true;
+            print("🔄 Datos cargados desde caché: ${datos.length} materias");
+          });
+        }
         return;
       }
 
-      // Si no hay datos, inicia la carga pero no esperes aquí
+      // Si no hay datos, inicia la carga
       await provider.cargarCalificacionesTrimestre(widget.trimestre);
 
       // Después de la carga, obtén los datos y actualiza el estado
       if (mounted) {
+        final datos = provider.getDatosTrimestre(widget.trimestre);
         setState(() {
-          _materias = provider.getDatosTrimestre(widget.trimestre);
+          _materias = datos;
           _error = provider.error;
           _isLoading = false;
+          _datosConsultados = true;
+          print("🔄 Datos cargados desde API: ${datos.length} materias");
         });
       }
     } catch (e) {
+      print("❌ Error al cargar calificaciones: $e");
       if (mounted) {
         setState(() {
           _error = e.toString();
           _isLoading = false;
+          _materias =
+              []; // Asegúrate de que materias esté vacío en caso de error
+          _datosConsultados = true;
         });
       }
     }
@@ -75,6 +93,11 @@ class _CalificacionTrimestreScreenState
 
   @override
   Widget build(BuildContext context) {
+    // Debug para ver el estado actual
+    print(
+      "📊 Estado actual: loading=$_isLoading, error=${_error.isNotEmpty}, materias=${_materias.length}, consultados=$_datosConsultados",
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.titulo),
@@ -86,99 +109,65 @@ class _CalificacionTrimestreScreenState
   }
 
   Widget _buildBody() {
+    // Primero verificamos si está cargando
     if (_isLoading) {
-      return Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.red, Colors.white],
-            stops: [0.0, 0.3],
-          ),
-        ),
-        child: const Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        ),
-      );
+      return _buildLoadingView();
     }
 
+    // Luego verificamos si hay error
     if (_error.isNotEmpty) {
-      return Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.red, Colors.white],
-            stops: [0.0, 0.3],
-          ),
-        ),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 80,
-                  color: Colors.white.withOpacity(0.8),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Error al cargar calificaciones',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _error,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 16,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _cargarCalificaciones,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.red,
-                  ),
-                  child: const Text('Reintentar'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+      return _buildErrorView();
     }
 
-    if (_materias.isEmpty) {
-      return Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.red, Colors.white],
-            stops: [0.0, 0.3],
-          ),
+    // Verificamos si no hay materias (después de consultar)
+    if (_datosConsultados && _materias.isEmpty) {
+      return _buildEmptyView();
+    }
+
+    // Si hay materias, mostramos la lista
+    return _buildMateriasList();
+  }
+
+  Widget _buildLoadingView() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.red, Colors.white],
+          stops: [0.0, 0.3],
         ),
-        child: Center(
+      ),
+      child: const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildErrorView() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.red, Colors.white],
+          stops: [0.0, 0.3],
+        ),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Icons.school,
+                Icons.error_outline,
                 size: 80,
                 color: Colors.white.withOpacity(0.8),
               ),
               const SizedBox(height: 16),
               const Text(
-                'No hay calificaciones disponibles',
+                'Error al cargar calificaciones',
                 style: TextStyle(
                   fontSize: 18,
                   color: Colors.white,
@@ -187,7 +176,7 @@ class _CalificacionTrimestreScreenState
               ),
               const SizedBox(height: 8),
               Text(
-                'No se encontraron calificaciones para este trimestre',
+                _error,
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.8),
                   fontSize: 16,
@@ -196,19 +185,103 @@ class _CalificacionTrimestreScreenState
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: _cargarCalificaciones,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: Colors.red,
                 ),
-                child: const Text('Volver'),
+                child: const Text('Reintentar'),
               ),
             ],
           ),
         ),
-      );
-    }
+      ),
+    );
+  }
 
+  Widget _buildEmptyView() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.red, Colors.white],
+          stops: [0.0, 0.3],
+        ),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.school_outlined,
+                size: 100,
+                color: Colors.black.withOpacity(0.9),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'No tienes materias',
+                style: TextStyle(
+                  fontSize: 24,
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                child: Text(
+                  'No se encontraron calificaciones para este trimestre',
+                  style: TextStyle(
+                    color: Colors.red.withOpacity(0.9),
+                    fontSize: 16,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _cargarCalificaciones,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Actualizar'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Volver'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMateriasList() {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(

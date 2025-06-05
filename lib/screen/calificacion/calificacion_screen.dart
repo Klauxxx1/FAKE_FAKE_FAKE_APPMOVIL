@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../widgets/app_drawer.dart';
 import '../../services/auth_service.dart';
 import '../../models/usuario_model.dart';
+import '../../models/GestionesResponse_model.dart';
 import 'calificacion_provider.dart';
 import 'calificacion_trimestre_screen.dart';
 
@@ -17,6 +18,7 @@ class _CalificacionScreenState extends State<CalificacionScreen> {
   final AuthService _authService = AuthService();
   Usuario? _usuario;
   bool _isLoading = true;
+  Set<String> _aniosDisponibles = {};
 
   @override
   void initState() {
@@ -33,12 +35,26 @@ class _CalificacionScreenState extends State<CalificacionScreen> {
           _isLoading = false;
         });
 
-        // Solo cargar calificaciones después de cargar usuario
+        // Solo cargar datos después de cargar usuario
         if (_usuario != null) {
-          await Provider.of<CalificacionProvider>(
+          final provider = Provider.of<CalificacionProvider>(
             context,
             listen: false,
-          ).obtenerCalificacionesConsolidadas();
+          );
+          // Cargar calificaciones consolidadas
+          await provider.obtenerCalificacionesConsolidadas();
+          // Cargar resumen de gestiones
+          await provider.obtenerResumenGestiones();
+
+          // Obtener los años disponibles
+          if (mounted) {
+            setState(() {
+              _aniosDisponibles =
+                  provider.resumenGestiones
+                      .map((g) => g.gestion.split('-')[0])
+                      .toSet();
+            });
+          }
         }
       }
     } catch (e) {
@@ -89,7 +105,7 @@ class _CalificacionScreenState extends State<CalificacionScreen> {
       ),
       child: Consumer<CalificacionProvider>(
         builder: (context, provider, _) {
-          if (provider.isLoading) {
+          if (provider.isLoading || provider.isLoadingResumen) {
             return _buildLoadingIndicator();
           }
 
@@ -100,13 +116,28 @@ class _CalificacionScreenState extends State<CalificacionScreen> {
             );
           }
 
+          if (provider.errorResumen.isNotEmpty) {
+            return _buildErrorMessage(
+              'Error al cargar resumen de gestiones',
+              provider.errorResumen,
+            );
+          }
+
+          // Si no hay gestiones, mostrar mensaje
+          if (provider.resumenGestiones.isEmpty) {
+            return _buildErrorMessage(
+              'No hay gestiones disponibles',
+              'No se encontraron datos de gestiones académicas.',
+            );
+          }
+
           return Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Gestión Académica 2025',
+                  'Mis Gestiones Académicas',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -115,78 +146,27 @@ class _CalificacionScreenState extends State<CalificacionScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Selecciona un trimestre para ver tus calificaciones',
+                  'Selecciona una gestión para ver tus calificaciones',
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.white.withOpacity(0.9),
                   ),
                 ),
-                const SizedBox(height: 30),
+
+                //Aca falta nashe deah
                 Expanded(
                   child: ListView(
-                    children: [
-                      _buildTrimestreCard(
-                        context,
-                        'Primer Trimestre',
-                        'Febrero - Mayo 2025',
-                        Icons.auto_awesome,
-                        Colors.blue.shade700,
-                        provider.calcularPromedioTrimestre('1'),
-                        provider.calcularRendimientoEstimadoPromedio('1'),
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => const CalificacionTrimestreScreen(
-                                  titulo: 'Calificaciones 1° Trimestre',
-                                  trimestre: '1',
-                                ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTrimestreCard(
-                        context,
-                        'Segundo Trimestre',
-                        'Junio - Agosto 2025',
-                        Icons.grade,
-                        Colors.amber.shade700,
-                        provider.calcularPromedioTrimestre('2'),
-                        provider.calcularRendimientoEstimadoPromedio('2'),
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => const CalificacionTrimestreScreen(
-                                  titulo: 'Calificaciones 2° Trimestre',
-                                  trimestre: '2',
-                                ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTrimestreCard(
-                        context,
-                        'Tercer Trimestre',
-                        'Septiembre - Noviembre 2025',
-                        Icons.emoji_events,
-                        Colors.green.shade700,
-                        provider.calcularPromedioTrimestre('3'),
-                        provider.calcularRendimientoEstimadoPromedio('3'),
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => const CalificacionTrimestreScreen(
-                                  titulo: 'Calificaciones 3° Trimestre',
-                                  trimestre: '3',
-                                ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildPromedioPeriodoCard(provider),
-                    ],
+                    children: () {
+                      final anios =
+                          _aniosDisponibles.toList()
+                            ..sort((a, b) => b.compareTo(a));
+                      return anios
+                          .map<Widget>(
+                            (anio) =>
+                                _buildAnioSection(context, provider, anio),
+                          )
+                          .toList();
+                    }(),
                   ),
                 ),
               ],
@@ -194,6 +174,271 @@ class _CalificacionScreenState extends State<CalificacionScreen> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildAnioSection(
+    BuildContext context,
+    CalificacionProvider provider,
+    String anio,
+  ) {
+    List<GestionesResponse> gestionesAnio = provider.getGestionesPorAnio(anio);
+
+    // Ordenar por trimestre
+    gestionesAnio.sort((a, b) => a.gestion.compareTo(b.gestion));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          child: Row(
+            children: [
+              Icon(Icons.calendar_today, color: Colors.white.withOpacity(0.9)),
+              const SizedBox(width: 8),
+              Text(
+                'Gestión $anio',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white.withOpacity(0.9),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Tarjetas de trimestres para este año
+        ...gestionesAnio
+            .map((gestion) => _buildGestionCard(context, gestion))
+            .toList(),
+
+        // Mostrar resumen anual
+        _buildResumenAnualCard(provider, anio),
+
+        const Divider(color: Colors.white, height: 1),
+      ],
+    );
+  }
+
+  Widget _buildGestionCard(BuildContext context, GestionesResponse gestion) {
+    // Extraer información de la gestión
+    final partes = gestion.gestion.split('-');
+    final anio = partes[0];
+    final trimestre = partes[1].replaceAll('T', '');
+
+    // Configurar información visual según el trimestre
+    IconData icon;
+    Color color;
+    String subtitle;
+
+    switch (trimestre) {
+      case '1':
+        icon = Icons.auto_awesome;
+        color = Colors.blue.shade700;
+        subtitle = 'Primer Trimestre $anio';
+        break;
+      case '2':
+        icon = Icons.grade;
+        color = Colors.amber.shade700;
+        subtitle = 'Segundo Trimestre $anio';
+        break;
+      case '3':
+        icon = Icons.emoji_events;
+        color = Colors.green.shade700;
+        subtitle = 'Tercer Trimestre $anio';
+        break;
+      default:
+        icon = Icons.school;
+        color = Colors.purple.shade700;
+        subtitle = 'Trimestre $trimestre de $anio';
+    }
+
+    final bool tieneCalificaciones =
+        gestion.promedioRendimientoAcademicoReal >= 0;
+
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: InkWell(
+        onTap:
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) => CalificacionTrimestreScreen(
+                      titulo: 'Calificaciones ${subtitle}',
+                      trimestre: trimestre,
+                    ),
+              ),
+            ),
+        borderRadius: BorderRadius.circular(15),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: color, size: 30),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Trimestre $trimestre',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios, color: Colors.grey),
+                ],
+              ),
+              if (tieneCalificaciones) ...[
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildStatItem(
+                      'Rendimiento Real',
+                      gestion.promedioRendimientoAcademicoReal.toStringAsFixed(
+                        2,
+                      ),
+                      Colors.blue,
+                    ),
+                    _buildStatItem(
+                      'Rendimiento Est.',
+                      gestion.promedioRendimientoAcademicoEstimado
+                          .toStringAsFixed(2),
+                      Colors.orange,
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResumenAnualCard(CalificacionProvider provider, String anio) {
+    double promedioReal = provider.getPromedioRendimientoRealAnual(anio);
+    double promedioEstimado = provider.getPromedioRendimientoEstimadoAnual(
+      anio,
+    );
+
+    // Si no hay datos reales, no mostrar la tarjeta
+    if (promedioReal <= 0) return const SizedBox.shrink();
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      color: Colors.red.shade50,
+      margin: const EdgeInsets.only(top: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.school, color: Colors.red.shade700, size: 28),
+                const SizedBox(width: 12),
+                Text(
+                  'Resumen Anual $anio',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildResumenStatItem(
+                  'Rendimiento Real',
+                  promedioReal.toStringAsFixed(2),
+                  Colors.blue.shade700,
+                ),
+                _buildResumenStatItem(
+                  'Rendimiento Estimado',
+                  promedioEstimado.toStringAsFixed(2),
+                  Colors.orange.shade700,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _getCalificacionTexto(promedioReal),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.red.shade700,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResumenStatItem(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey.shade700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withOpacity(0.3)),
+          ),
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -269,91 +514,6 @@ class _CalificacionScreenState extends State<CalificacionScreen> {
     );
   }
 
-  Widget _buildTrimestreCard(
-    BuildContext context,
-    String title,
-    String subtitle,
-    IconData icon,
-    Color color,
-    double promedio,
-    double rendimientoEstimado,
-    VoidCallback onTap,
-  ) {
-    final bool tieneCalificaciones = promedio > 0;
-
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(15),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(icon, color: color, size: 30),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.arrow_forward_ios, color: Colors.grey),
-                ],
-              ),
-              if (tieneCalificaciones) ...[
-                const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildStatItem(
-                      'Promedio',
-                      promedio.toStringAsFixed(2),
-                      Colors.blue,
-                    ),
-                    _buildStatItem(
-                      'Rendimiento Est.',
-                      rendimientoEstimado.toStringAsFixed(2),
-                      Colors.orange,
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildStatItem(String label, String value, Color color) {
     return Column(
       children: [
@@ -378,90 +538,6 @@ class _CalificacionScreenState extends State<CalificacionScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildPromedioPeriodoCard(CalificacionProvider provider) {
-    // Calcular el promedio general de todos los trimestres
-    double promedioT1 = provider.calcularPromedioTrimestre('1');
-    double promedioT2 = provider.calcularPromedioTrimestre('2');
-    double promedioT3 = provider.calcularPromedioTrimestre('3');
-
-    // Contar cuántos trimestres tienen calificaciones
-    int trimestresConCalificacion = 0;
-    if (promedioT1 > 0) trimestresConCalificacion++;
-    if (promedioT2 > 0) trimestresConCalificacion++;
-    if (promedioT3 > 0) trimestresConCalificacion++;
-
-    // Calcular promedio general
-    double promedioGeneral =
-        trimestresConCalificacion > 0
-            ? (promedioT1 + promedioT2 + promedioT3) / trimestresConCalificacion
-            : 0.0;
-
-    // Si no hay calificaciones, no mostrar este card
-    if (promedioGeneral <= 0) return const SizedBox();
-
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      color: Colors.red.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.school, color: Colors.red.shade700, size: 28),
-                const SizedBox(width: 12),
-                Text(
-                  'Promedio General Anual',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red.shade700,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.red.shade200.withOpacity(0.5),
-                    spreadRadius: 1,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Text(
-                promedioGeneral.toStringAsFixed(2),
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red.shade700,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _getCalificacionTexto(promedioGeneral),
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.red.shade700,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

@@ -64,6 +64,17 @@ class AuthService {
         final id = data['id'] ?? 0;
         final rol = data['rol'] ?? '';
 
+        final peticion = await http.get(
+          Uri.parse('$baseUrl/estudiante/por-usuario/?usuario_id=$id'),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        if (peticion.statusCode == 200) {
+          final dataId = jsonDecode(peticion.body);
+          final estudiante_id = dataId['estudiante_id'] ?? 0;
+          prefs.setInt('estudiante_id', estudiante_id);
+        }
+
         prefs.setInt('usuario_id', id);
         prefs.setString('rol', rol);
 
