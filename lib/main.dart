@@ -31,6 +31,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CalificacionProvider()),
+        // ChangeNotifierProvider(create: (ctx) => DatosHistoricosProvider()),
         // Otros providers...
       ],
       child: MaterialApp(
@@ -54,6 +55,7 @@ class MyApp extends StatelessWidget {
           '/participacion': (context) => const ParticipacionScreen(),
           '/calificaciones': (context) => const CalificacionScreen(),
           '/prediccion': (context) => const PrediccionScreen(),
+          // '/datos-historicos': (ctx) => const DatosHistoricosScreen(),
         },
       ),
     );
